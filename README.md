@@ -1,4 +1,4 @@
-django-disenchained helps you free Django from the shackles of inefficient queryies!
+django-disenchained helps you free Django from the shackles of inefficient queries!
 
 ## What
 
@@ -21,17 +21,17 @@ executed by the decorated function.
 1. Install `disenchained` by cloning the git repo and running setup.py or using pip:
 
 
-```sh
-# NOTE: doesn't work yet. Remove this when package added to PyPI
-pip install django-disenchained
-```
+    ```sh
+    # NOTE: doesn't work yet. Remove this when package added to PyPI
+    pip install django-disenchained
+    ```
 
 
-2. Enable the debug toolbar, add the `disenchained.panels.DisenchainedPanel` panel and specify the `DISENCHAINED_DATA_DIRECTORY` param. 
+2. Enable the debug toolbar, add the `disenchained.panels.DisenchainedPanel` panel and specify the `DISENCHAINED_DATA_DIRECTORY` parameter. 
 
-Your `settings.py` should include this:
+    Your `settings.py` should include this:
 
-```python
+    ```python
 
     if 'debug_toolbar' in settings['INSTALLED_APPS']:
         settings['DISENCHAINED_DATA_DIRECTORY'] = "/var/disenchained-data"
@@ -42,9 +42,9 @@ Your `settings.py` should include this:
             'disenchained.panels.UnchainedPanel',
             'debug_toolbar.panels.sql.SQLDebugPanel',
         )
-```
+    ```
 
-For every request, the `django-disenchained` will place a pickle file in the `DISENCHAINED_DATA_DIRECTORY` directory with the name `<view_name>.<timetamp>.pickle`.
+    For every request, the `django-disenchained` will place a pickle file in the `DISENCHAINED_DATA_DIRECTORY` directory with the name `<view_name>.<timetamp>.pickle`.
 
 ## Usage: logging queries in a view
 
@@ -61,7 +61,7 @@ from django.core.management.base import BaseCommand
 from disenchained.decorators import log_queries
 
 from myapp.models import Book
-from myapp.utils import summarize
+from myapp.utils import sales_summary
 
 class Command(BaseCommand):
     args = ()
@@ -69,7 +69,7 @@ class Command(BaseCommand):
     @log_queries('my_command')
     def handle(self, *args, **kwargs):
         for book in Book.objects.all():
-            print summarize(book)
+            print sales_summary(book)
 ```
 
 All queries executed during the execution of this command will be logged and
