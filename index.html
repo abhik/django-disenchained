@@ -1,0 +1,231 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Django-disenchained by abhik</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Django-disenchained</h1>
+        <p>Free Django from the shackles of inefficient queries!</p>
+
+        <p class="view"><a href="https://github.com/abhik/django-disenchained">View the Project on GitHub <small>abhik/django-disenchained</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/abhik/django-disenchained/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/abhik/django-disenchained/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/abhik/django-disenchained">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <p>django-disenchained helps you free Django from the shackles of inefficient queries!</p>
+
+<h2>What</h2>
+
+<p>The Django ORM is great because it lets you treat a relational database as a collection of objects but it's a leaky abstraction that makes it <em>very easy</em> to write inefficient code. Especially in large codebases where the functions that query the database are far removed from the view (and written by someone else), it's not readily obvious that you're making multiple queries when one would have sufficed.</p>
+
+<p><code>disenchained</code> logs all queries executed during a Django view, management command or any arbitrary function and provides tools to analyze the query log. You can identify long-running queries; duplicate queries; files, functions or specific lines of code that generate lots of queries; and more!</p>
+
+<h2>How it works</h2>
+
+<p><code>disenchained.panels.DisenchainedPanel</code> defines a custom panel for the
+<a href="https://github.com/django-debug-toolbar/django-debug-toolbar">django-debug-toolbar</a> that saves the query log in a pickle file that can
+later be analyzed by other <code>disenchained</code> modules. Enabling the panel (see below)
+is all it takes to log queries executed during views.</p>
+
+<p><code>disenchained.decorators.log_queries</code> defines a decorator that logs queries
+executed by the decorated function.</p>
+
+<h2>Installation and Configuration</h2>
+
+<ol>
+<li>
+<p>Install <code>disenchained</code> by cloning the git repo and running setup.py or using pip:</p>
+
+<div class="highlight"><pre>pip install django-disenchained
+</pre></div>
+</li>
+<li>
+<p>Enable the debug toolbar, add the <code>disenchained.panels.DisenchainedPanel</code> panel and specify the <code>DISENCHAINED_DATA_DIRECTORY</code> parameter. </p>
+
+<p>Your <code>settings.py</code> should include this:</p>
+
+<div class="highlight"><pre>
+<span class="k">if</span> <span class="s">'debug_toolbar'</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">[</span><span class="s">'INSTALLED_APPS'</span><span class="p">]:</span>
+    <span class="n">settings</span><span class="p">[</span><span class="s">'DISENCHAINED_DATA_DIRECTORY'</span><span class="p">]</span> <span class="o">=</span> <span class="s">"/var/disenchained-data"</span>
+    <span class="n">settings</span><span class="p">[</span><span class="s">'MIDDLEWARE_CLASSES'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="s">'debug_toolbar.middleware.DebugToolbarMiddleware'</span><span class="p">)</span>
+
+    <span class="n">settings</span><span class="p">[</span><span class="s">'DEBUG_TOOLBAR_PANELS'</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s">'disenchained.panels.DisenchainedPanel'</span><span class="p">,</span>
+        <span class="s">'debug_toolbar.panels.sql.SQLDebugPanel'</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+
+<p>For every request, <code>disenchained</code> will place a pickle file in the <code>DISENCHAINED_DATA_DIRECTORY</code> directory with the name <code>&lt;view_name&gt;.&lt;timetamp&gt;.pickle</code>.</p>
+</li>
+</ol><h2>Usage: logging queries in a view</h2>
+
+<p>After you visit a page, click the <code>Disenchained</code> panel in the debug toolbar to get
+the full path to the saved pickle file. Or, simply check the directory specified
+by <code>DISENCHAINED_DATA_DIRECTORY</code>. </p>
+
+<h2>Usage: logging queries in a function</h2>
+
+<p>The following is an example of decorating a Django management command:</p>
+
+<pre><code>from django.core.management.base import BaseCommand
+from disenchained.decorators import log_queries
+
+from myapp.models import Book
+from myapp.utils import sales_summary
+
+class Command(BaseCommand):
+    args = ()
+
+    @log_queries('my_command')
+    def handle(self, *args, **kwargs):
+        for book in Book.objects.all():
+            print sales_summary(book)
+</code></pre>
+
+<p>All queries executed during the execution of this command will be logged and
+outputted as a pickle file in the directory specified by the
+<code>DISENCHAINED_DATA_DIRECTORY</code> setting and with the filename
+<code>my_command.&lt;timestamp&gt;.pickle</code>.</p>
+
+<h2>Usage: analyzing disenchained pickle files</h2>
+
+<p><a href="https://gist.github.com/abhik/5089967">Gist:abhik/5089967</a> includes <code>models.py</code> and <code>views.py</code> for a toy Django app that demonstrates the use of <code>disenchained</code> to identify inefficient use of queries. The app includes several models and a view for a simple book store app.  </p>
+
+<p>The following is an example session in the python shell for using the <code>disenchained</code> pickle file to analyze queries executed during a view in the toy app defined above. Keep in mind that, although this uses a toy problem where the solution is obvious (and the code obviously poorly written), the same types of inefficiencies have been found in large, well-written code bases. The ORM is a wonderful thing but can hide many inefficiencies.</p>
+
+<div class="highlight"><pre><span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">disenchained</span> <span class="kn">import</span> <span class="n">DebugFile</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">disenchained.query</span> <span class="kn">import</span> <span class="n">most_common</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">disenchained.query</span> <span class="kn">import</span> <span class="n">num_duplicates</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">disenchained.query</span> <span class="kn">import</span> <span class="n">where</span>
+
+<span class="c"># Load the disenchained pickle file</span>
+<span class="c"># The DISENCHAINED_DATA_DIRECTORY setting specifies the directory for these files</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">debug</span> <span class="o">=</span> <span class="n">DebugFile</span><span class="p">(</span><span class="s">"/var/disenchained-data/sales_summary.136248367389.pickle"</span><span class="p">)</span>
+
+<span class="c"># Some metadata about the view</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">debug</span><span class="o">.</span><span class="n">info</span>
+<span class="p">{</span><span class="s">'app_name'</span><span class="p">:</span> <span class="s">'books'</span><span class="p">,</span>
+ <span class="s">'func_args'</span><span class="p">:</span> <span class="p">(),</span>
+ <span class="s">'func_kwargs'</span><span class="p">:</span> <span class="p">{</span><span class="s">'sales_campaign'</span><span class="p">:</span> <span class="s">u'supersale'</span><span class="p">},</span>
+ <span class="s">'func_name'</span><span class="p">:</span> <span class="s">'sales_summary'</span><span class="p">,</span>
+ <span class="s">'sessionid'</span><span class="p">:</span> <span class="s">'338065d96ad99fdacb2a96afd3433d62'</span><span class="p">,</span>
+ <span class="s">'url_name'</span><span class="p">:</span> <span class="s">'sales_summary'</span><span class="p">,</span>
+ <span class="s">'view_name'</span><span class="p">:</span> <span class="s">'sales_summary'</span><span class="p">}</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">debug</span><span class="o">.</span><span class="n">queries</span><span class="p">)</span>
+<span class="mi">1663</span>
+
+<span class="c"># in milliseconds</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">sum</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">duration</span> <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">debug</span><span class="o">.</span><span class="n">queries</span><span class="p">)</span>
+<span class="mf">510.6410000000003</span>
+
+<span class="c"># How many queries are exact duplicates (same query template and params)?</span>
+<span class="c"># In most cases, this should be zero!</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">num_duplicates</span><span class="p">(</span><span class="n">debug</span><span class="o">.</span><span class="n">queries</span><span class="p">,</span> <span class="s">"sql"</span><span class="p">)</span>
+<span class="mi">999</span>
+
+<span class="c"># How many queries have the same template but different params?</span>
+<span class="c"># Often, this indicates that we're making O(N) queries instead of O(1) -- a</span>
+<span class="c"># common problem when using an ORM.</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">num_duplicates</span><span class="p">(</span><span class="n">debug</span><span class="o">.</span><span class="n">queries</span><span class="p">,</span> <span class="s">"rawsql"</span><span class="p">)</span>
+<span class="mi">1659</span>
+
+<span class="c"># What's the most common exact query (same template and params)?</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">most_common</span><span class="p">(</span><span class="n">debug</span><span class="o">.</span><span class="n">queries</span><span class="p">,</span> <span class="s">"sql"</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="p">[{</span><span class="s">'count'</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>
+  <span class="s">'duration'</span><span class="p">:</span> <span class="mf">279.4810000000006</span><span class="p">,</span>
+  <span class="s">'key'</span><span class="p">:</span> <span class="s">'SELECT "books_salescampaign"."id", "books_salescampaign"."name" FROM "books_salescampaign" WHERE "books_salescampaign"."id" = 1 '</span><span class="p">},</span>
+ <span class="p">{</span><span class="s">'count'</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="s">'duration'</span><span class="p">:</span> <span class="mf">0.245</span><span class="p">,</span>
+  <span class="s">'key'</span><span class="p">:</span> <span class="s">'SELECT "books_booksale"."id", "books_booksale"."book_id", "books_booksale"."price", "books_booksale"."sales_campaign_id" FROM "books_booksale" WHERE "books_booksale"."book_id" = 201 '</span><span class="p">},</span>
+ <span class="p">{</span><span class="s">'count'</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="s">'duration'</span><span class="p">:</span> <span class="mf">0.304</span><span class="p">,</span>
+  <span class="s">'key'</span><span class="p">:</span> <span class="s">'SELECT "books_booksale"."id", "books_booksale"."book_id", "books_booksale"."price", "books_booksale"."sales_campaign_id" FROM "books_booksale" WHERE "books_booksale"."book_id" = 383 '</span><span class="p">}]</span>
+
+<span class="c"># Wow, this one query is executed 1000 times and takes up 54% of the query runtime.</span>
+<span class="c"># Let's dig into it further</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">bad_sql</span> <span class="o">=</span> <span class="n">most_common</span><span class="p">(</span><span class="n">debug</span><span class="o">.</span><span class="n">queries</span><span class="p">,</span> <span class="s">"sql"</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s">'key'</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">bad_queries</span> <span class="o">=</span> <span class="n">where</span><span class="p">(</span><span class="n">debug</span><span class="o">.</span><span class="n">queries</span><span class="p">,</span> <span class="s">"sql"</span><span class="p">,</span> <span class="n">bad_sql</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">bad_queries</span><span class="p">)</span>
+<span class="mi">1000</span>
+
+<span class="c"># All 1000 queries are executed from the same function..</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">most_common</span><span class="p">(</span><span class="n">bad_queries</span><span class="p">,</span> <span class="s">"function"</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="p">[{</span><span class="s">'count'</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>
+  <span class="s">'duration'</span><span class="p">:</span> <span class="mf">279.4810000000006</span><span class="p">,</span>
+  <span class="s">'key'</span><span class="p">:</span> <span class="n">FunctionInfo</span><span class="p">(</span><span class="nb">file</span><span class="o">=</span><span class="s">'/Users/abhik/src/disenchained_demo/books/models.py'</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="s">'has_discount'</span><span class="p">)}]</span>
+
+<span class="c"># ..and the same line of code.</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">most_common</span><span class="p">(</span><span class="n">bad_queries</span><span class="p">,</span> <span class="s">"codeline"</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="p">[{</span><span class="s">'count'</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>
+  <span class="s">'duration'</span><span class="p">:</span> <span class="mf">279.4810000000006</span><span class="p">,</span>
+  <span class="s">'key'</span><span class="p">:</span> <span class="n">Codeline</span><span class="p">(</span><span class="nb">file</span><span class="o">=</span><span class="s">'/Users/abhik/src/disenchained_demo/books/models.py'</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="s">'has_discount'</span><span class="p">,</span> <span class="n">lineno</span><span class="o">=</span><span class="mi">34</span><span class="p">)}]</span>
+
+<span class="c"># You can also see the stacktrace for any query to see exactly where and why it</span>
+<span class="c"># was executed. This should give you a good starting point for eliminating</span>
+<span class="c"># these duplicate queries.</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">bad_queries</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">stacktrace</span>
+<span class="p">[(</span><span class="s">'/usr/local/Cellar/python/2.7.3/lib/python2.7/site-packages/django/contrib/staticfiles/handlers.py'</span><span class="p">,</span>
+  <span class="mi">67</span><span class="p">,</span>
+  <span class="s">'__call__'</span><span class="p">,</span>
+  <span class="s">'return self.application(environ, start_response)'</span><span class="p">),</span>
+ <span class="p">(</span><span class="s">'/Users/abhik/src/disenchained_demo/books/views.py'</span><span class="p">,</span>
+  <span class="mi">15</span><span class="p">,</span>
+  <span class="s">'sales_summary'</span><span class="p">,</span>
+  <span class="s">'total_sales[book.name] = book.total_sales()'</span><span class="p">),</span>
+ <span class="p">(</span><span class="s">'/Users/abhik/src/disenchained_demo/books/models.py'</span><span class="p">,</span>
+  <span class="mi">11</span><span class="p">,</span>
+  <span class="s">'total_sales'</span><span class="p">,</span>
+  <span class="s">'if sale.has_discount:'</span><span class="p">),</span>
+ <span class="p">(</span><span class="s">'/Users/abhik/src/disenchained_demo/books/models.py'</span><span class="p">,</span>
+  <span class="mi">34</span><span class="p">,</span>
+  <span class="s">'has_discount'</span><span class="p">,</span>
+  <span class="s">'return self.sales_campaign.has_discount'</span><span class="p">)]</span>
+
+<span class="c"># Now, let's look at duplicated "raw" queries -- these are the same template</span>
+<span class="c"># query but with different params.</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">most_common</span><span class="p">(</span><span class="n">debug</span><span class="o">.</span><span class="n">queries</span><span class="p">,</span> <span class="s">"rawsql"</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="p">[{</span><span class="s">'count'</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>
+  <span class="s">'duration'</span><span class="p">:</span> <span class="mf">279.4810000000006</span><span class="p">,</span>
+  <span class="s">'key'</span><span class="p">:</span> <span class="s">'SELECT "books_salescampaign"."id", "books_salescampaign"."name" FROM "books_salescampaign" WHERE "books_salescampaign"."id" = </span><span class="si">%s</span><span class="s"> '</span><span class="p">},</span>
+ <span class="p">{</span><span class="s">'count'</span><span class="p">:</span> <span class="mi">661</span><span class="p">,</span>
+  <span class="s">'duration'</span><span class="p">:</span> <span class="mf">215.9600000000001</span><span class="p">,</span>
+  <span class="s">'key'</span><span class="p">:</span> <span class="s">'SELECT "books_booksale"."id", "books_booksale"."book_id", "books_booksale"."price", "books_booksale"."sales_campaign_id" FROM "books_booksale" WHERE "books_booksale"."book_id" = </span><span class="si">%s</span><span class="s"> '</span><span class="p">},</span>
+ <span class="p">{</span><span class="s">'count'</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="s">'duration'</span><span class="p">:</span> <span class="mf">8.776</span><span class="p">,</span>
+  <span class="s">'key'</span><span class="p">:</span> <span class="s">'SELECT DISTINCT "books_book"."id", "books_book"."name" FROM "books_book" INNER JOIN "books_booksale" ON ("books_book"."id" = "books_booksale"."book_id") INNER JOIN "books_salescampaign" ON ("books_booksale"."sales_campaign_id" = "books_salescampaign"."id") WHERE "books_salescampaign"."name" = </span><span class="si">%s</span><span class="s"> '</span><span class="p">}]</span>
+
+<span class="c"># All of these are also executed from a single line of code.</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">bad_rawsql</span> <span class="o">=</span> <span class="n">most_common</span><span class="p">(</span><span class="n">debug</span><span class="o">.</span><span class="n">queries</span><span class="p">,</span> <span class="s">"rawsql"</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">3</span><span class="p">)[</span><span class="mi">1</span><span class="p">][</span><span class="s">'key'</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">most_common</span><span class="p">(</span><span class="n">where</span><span class="p">(</span><span class="n">debug</span><span class="o">.</span><span class="n">queries</span><span class="p">,</span> <span class="s">"rawsql"</span><span class="p">,</span> <span class="n">bad_rawsql</span><span class="p">),</span> <span class="s">"codeline"</span><span class="p">)</span>
+<span class="p">[{</span><span class="s">'count'</span><span class="p">:</span> <span class="mi">661</span><span class="p">,</span>
+  <span class="s">'duration'</span><span class="p">:</span> <span class="mf">215.9600000000001</span><span class="p">,</span>
+  <span class="s">'key'</span><span class="p">:</span> <span class="n">Codeline</span><span class="p">(</span><span class="nb">file</span><span class="o">=</span><span class="s">'/Users/abhik/src/disenchained_demo/books/models.py'</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="s">'total_sales'</span><span class="p">,</span> <span class="n">lineno</span><span class="o">=</span><span class="mi">9</span><span class="p">)}]</span>
+</pre></div>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/abhik">abhik</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
