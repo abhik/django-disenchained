@@ -16,7 +16,7 @@ is all it takes to log queries executed during views.
 `disenchained.decorators.log_queries` defines a decorator that logs queries
 executed by the decorated function.
 
-## Setup and Configuration
+## Installation and Configuration
 
 1. Install `disenchained` by cloning the git repo and running setup.py or using pip:
 
