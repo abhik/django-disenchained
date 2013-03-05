@@ -43,7 +43,7 @@ executed by the decorated function.
         )
     ```
 
-    For every request, the `django-disenchained` will place a pickle file in the `DISENCHAINED_DATA_DIRECTORY` directory with the name `<view_name>.<timetamp>.pickle`.
+    For every request, `disenchained` will place a pickle file in the `DISENCHAINED_DATA_DIRECTORY` directory with the name `<view_name>.<timetamp>.pickle`.
 
 ## Usage: logging queries in a view
 
