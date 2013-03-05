@@ -22,7 +22,6 @@ executed by the decorated function.
 
 
     ```sh
-    # NOTE: doesn't work yet. Remove this when package added to PyPI
     pip install django-disenchained
     ```
 

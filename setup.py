@@ -4,7 +4,7 @@ from setuptools import setup
 setup(
     name='django-disenchained',
     version='0.8',
-    description='django-disenchained: free your code from inefficient queries!',
+    description='django-disenchained: free Django from the shackles of inefficient queries!',
 
     author='Abhik Shah',
     author_email='abhik@counsyl.com',
