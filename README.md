@@ -8,7 +8,7 @@ The Django ORM is great because it lets you treat a relational database as a col
 
 ## How it works
 
-`disenchained.panels.UnchainedPanel` defines a custom panel for the
+`disenchained.panels.DisenchainedPanel` defines a custom panel for the
 [django-debug-toolbar](https://github.com/django-debug-toolbar/django-debug-toolbar) that saves the query log in a pickle file that can
 later be analyzed by other `disenchained` modules. Enabling the panel (see below)
 is all it takes to log queries executed during views.
@@ -39,7 +39,7 @@ executed by the decorated function.
             'debug_toolbar.middleware.DebugToolbarMiddleware')
 
         settings['DEBUG_TOOLBAR_PANELS'] = (
-            'disenchained.panels.UnchainedPanel',
+            'disenchained.panels.DisenchainedPanel',
             'debug_toolbar.panels.sql.SQLDebugPanel',
         )
     ```
