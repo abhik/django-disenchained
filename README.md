@@ -139,7 +139,7 @@ The following is an example session in the python shell for using the `disenchai
 >>> len(bad_queries)
 1000
 
-# All 100 queries are executed from the same function..
+# All 1000 queries are executed from the same function..
 >>> most_common(bad_queries, "function", n=2)
 [{'count': 1000,
   'duration': 279.4810000000006,
